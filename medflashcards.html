@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Flashcards</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .flashcard-container {
+            width: 300px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .flashcard {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .flashcard.answer {
+            display: none;
+            color: green;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        button {
+            margin: 5px;
+        }
+
+        .flashcard-number {
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        .performance-buttons {
+            margin-top: 20px;
+        }
+
+        .question-buttons {
+            margin-top: 20px;
+        }
+
+        .question-button {
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            margin: 5px;
+        }
+
+        .good-button {
+            background-color: green;
+            border: none;
+            color: white;
+        }
+
+        .practice-button {
+            background-color: red;
+            border: none;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="flashcard-container">
+        <div class="flashcard" id="question">Question goes here</div>
+        <div class="flashcard answer" id="answer">Answer goes here</div>
+        <div class="button-container">
+            <button onclick="showAnswer()">Show Answer</button>
+            <button onclick="nextCard()" id="next-button">Next Card</button>
+            <button onclick="backToFirstCard()" id="back-to-first" style="display: none">Back to 1st Card</button>
+            <button onclick="restart()" id="restart-button">Restart</button>
+        </div>
+        <div class="flashcard-number">1 of 3</div>
+        <div class="performance-buttons" id="performance-buttons"></div>
+        <div class="question-buttons" id="question-buttons"></div>
+    </div>
+
+    <script>
+        const flashcards = [
+            { question: "What is the capital of France?", answer: "Paris" },
+            { question: "What is the largest planet in our solar system?", answer: "Jupiter" },
+            { question: "What is 2 + 2?", answer: "4" },
+        ];
+
+        let currentCard = 0;
+        const questionElement = document.getElementById('question');
+        const answerElement = document.getElementById('answer');
+        const showAnswerButton = document.querySelector("button[onclick='showAnswer()']");
+        const nextCardButton = document.getElementById('next-button');
+        const backToFirstButton = document.getElementById('back-to-first');
+        const restartButton = document.getElementById('restart-button');
+        const flashcardNumberElement = document.querySelector('.flashcard-number');
+        const performanceButtonsContainer = document.getElementById('performance-buttons');
+        const questionButtonsContainer = document.getElementById('question-buttons');
+
+        const performanceData = new Array(flashcards.length).fill(null);
+        let resetColors = false;
+
+        function showAnswer() {
+            answerElement.style.display = 'block';
+            createPerformanceButtons();
+        }
+
+        function nextCard() {
+            if (currentCard < flashcards.length - 1) {
+                currentCard++;
+                questionElement.textContent = flashcards[currentCard].question;
+                answerElement.textContent = flashcards[currentCard].answer;
+                answerElement.style.display = 'none';
+                updateFlashcardNumber();
+                clearPerformanceButtons();
+                updateButtonState();
+            } else if (currentCard === flashcards.length - 1) {
+                nextCardButton.style.display = 'none';
+                backToFirstButton.style.display = 'block';
+            }
+        }
+
+        function backToFirstCard() {
+            currentCard = 0;
+            questionElement.textContent = flashcards[currentCard].question;
+            answerElement.textContent = flashcards[currentCard].answer;
+            answerElement.style.display = 'none';
+            updateFlashcardNumber();
+            clearPerformanceButtons();
+            if (resetColors) {
+                clearQuestionButtonsColor();
+            }
+            backToFirstButton.style.display = 'none';
+            nextCardButton.style.display = 'block';
+        }
+
+        function restart() {
+            currentCard = 0;
+            questionElement.textContent = flashcards[currentCard].question;
+            answerElement.textContent = flashcards[currentCard].answer;
+            answerElement.style.display = 'none';
+            updateFlashcardNumber();
+            clearPerformanceButtons();
+            clearQuestionButtonsColor();
+            backToFirstButton.style.display = 'none';
+            nextCardButton.style.display = 'block';
+            resetColors = true;
+        }
+
+        function updateFlashcardNumber() {
+            flashcardNumberElement.textContent = `${currentCard + 1} of ${flashcards.length}`;
+        }
+
+        function createPerformanceButtons() {
+            const buttons = document.createElement('div');
+            buttons.innerHTML = `
+                <button onclick="markPerformance('good')" class="performance-button">Good</button>
+                <button onclick="markPerformance('practice')" class="performance-button">Practice</button>
+            `;
+            performanceButtonsContainer.innerHTML = '';
+            performanceButtonsContainer.appendChild(buttons);
+        }
+
+        function clearPerformanceButtons() {
+            performanceButtonsContainer.innerHTML = '';
+        }
+
+        function markPerformance(performance) {
+            performanceData[currentCard] = performance;
+            updateQuestionButtons();
+            clearPerformanceButtons();
+        }
+
+        function createQuestionButtons() {
+            const buttons = flashcards.map((_, index) => {
+                const button = document.createElement('button');
+                button.textContent = index + 1;
+                button.className = 'question-button';
+                button.onclick = () => jumpToQuestion(index);
+                return button;
+            });
+            questionButtonsContainer.innerHTML = '';
+            buttons.forEach(button => questionButtonsContainer.appendChild(button));
+        }
+
+        function updateQuestionButtons() {
+            const questionButtons = questionButtonsContainer.querySelectorAll('.question-button');
+            const button = questionButtons[currentCard];
+            if (performanceData[currentCard] === 'good') {
+                button.classList.add('good-button');
+                button.classList.remove('practice-button');
+            } else if (performanceData[currentCard] === 'practice') {
+                button.classList.add('practice-button');
+                button.classList.remove('good-button');
+            } else {
+                button.classList.remove('good-button', 'practice-button');
+            }
+        }
+
+        function clearQuestionButtonsColor() {
+            const questionButtons = questionButtonsContainer.querySelectorAll('.question-button');
+            questionButtons.forEach(button => {
+                button.classList.remove('good-button', 'practice-button');
+            });
+        }
+
+        function jumpToQuestion(index) {
+            if (index >= 0 && index < flashcards.length) {
+                currentCard = index;
+                questionElement.textContent = flashcards[currentCard].question;
+                answerElement.textContent = flashcards[currentCard].answer;
+                answerElement.style.display = 'none';
+                updateFlashcardNumber();
+                clearPerformanceButtons();
+                updateButtonState();
+            }
+        }
+
+        function updateButtonState() {
+            if (currentCard === flashcards.length - 1) {
+                nextCardButton.style.display = 'none';
+                backToFirstButton.style.display = 'block';
+            } else {
+                nextCardButton.style.display = 'block';
+                backToFirstButton.style.display = 'none';
+            }
+        }
+
+        // Initial card display
+        questionElement.textContent = flashcards[currentCard].question;
+        answerElement.textContent = flashcards[currentCard].answer;
+        answerElement.style.display = 'none';
+        updateFlashcardNumber();
+        createQuestionButtons();
+        updateButtonState();
+    </script>
+</body>
+</html>
